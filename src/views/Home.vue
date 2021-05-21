@@ -3,7 +3,7 @@
     <router-view></router-view>
     <img alt="subway" src="../assets/img_subway.png"  width="1500" height="1269" usemap="#menuMap"/>
   <map name ="menuMap" id="menuMap">
-    <area shape="circle" coords="1346,494,3" alt="" title="Deokso" target="_blank" v-on:click="openSubway('덕소')"/>
+    <area shape="circle" coords="1346,494,3" alt="" title="Deokso" target="_blank" v-on:click="openSubway('서울역')"/>
     <area shape="circle" coords="973,358,50" alt="" title="Deokso" target="_blank" href="https://www.naver.com" style="background-color=#0000FF;"/>
     <area shape="circle" coords="963,340,2" alt="" title="Deokso" target="_blank" href="https://www.naver.com"/>
     <area shape="circle" coords="964,320,2" alt="" title="Deokso" target="_blank" href="https://www.naver.com"/> 
@@ -22,9 +22,19 @@
     </h3>
     <div slot="body">
       <h3>현재시각<b-badge>{{this.now}}</b-badge></h3>
+      <b-button-group v-if="this.modalElement.btn_state">
+        <b-button variant="info"
+        v-for="(btn) in modalElement.btn_state" 
+        :key="btn.name"
+        :pressed.sync="btn.state"
+        v-on:click="btn_click()"
+       >
+        {{btn.name}}
+        </b-button>
+      </b-button-group>
       <b-table
       id="my-table"
-      :items="stationElemnt.items"
+      :items="stationElemnt.item"
       :per-page="perPage"
       :current-page="currentPage"
     ></b-table>
@@ -56,6 +66,7 @@ export default {
   created(){
   },
   mounted(){
+    this.time();
   }
   ,
   data(){
@@ -63,20 +74,24 @@ export default {
       now:"00:00:00",
       row: 16,
       perPage:10,
+      networkcheck:false,
       currentPage:1,
       modalElement:
       {
+        btn_Index:0,
+        btn_state:[{name:" ",state:false}],
         headName:"None",
         showModal:false,
         lineCount:0,
-        lineName:[], 
         Id:[]
       },
       stationElemnt:{
         downPage:1,
         upPage:1,
+        page:[],  
         downCnt:0,
         upCnt:0,
+        item:[],
         items:[],
         upTime:[],
         downTime:[]
@@ -86,8 +101,8 @@ export default {
    methods:{
      clock(){
        let date = new Date();
-       this.now = this.timeconvert(date.getHours() + ":"
-       +date.getMinutes())+" "+date.getSeconds();
+       var strHM = ("0"+date.getHours()).slice(-2)+":"+("0"+date.getMinutes()).slice(-2); // 00:00 형식
+       this.now = this.timeconvert(strHM)+ " "+date.getSeconds();
      },
      time(){
        this.clock();
@@ -98,12 +113,25 @@ export default {
        this.stationElemnt.downTime.sort((a,b) => a-b);
        for(var i=cur; i <= scp;i++){
           var json= new Object();
-          json.up= this.timeconvert(this.stationElemnt.upTime[i].substring(0,2)+":"+this.stationElemnt.upTime[i].substring(2,4));
-          json.down= this.timeconvert(this.stationElemnt.downTime[i].substring(0,2)+":"+this.stationElemnt.downTime[i].substring(2,4));
-          this.stationElemnt.items.push(json);
+          json.up= this.timeconvert((""+this.stationElemnt.upTime[i]).substring(0,2)+":"+(""+this.stationElemnt.upTime[i]).substring(2,4));
+          json.down= this.timeconvert((""+this.stationElemnt.downTime[i]).substring(0,2)+":"+(""+this.stationElemnt.downTime[i]).substring(2,4));
+          this.stationElemnt.item.push(json);
        }
      }
      ,
+      timeconvert(time){
+        var timeRegFormat = /^([0-9]{2}):([0-9]{2})$/;
+        var timeToken = time.match(timeRegFormat);
+        var ap=['오전','오후'];
+
+        if(!timeToken){
+          return " ";
+        }
+        var intH=parseInt(timeToken[1]);
+        var intM=timeToken[2];
+        var str12H = ('0'+(intH == 12 ? 12 : intH % 12 )).slice(-2);
+        return ap[parseInt(intH/12)]+" " + str12H + "시" + intM +"분";
+      },
      getJson(stationName){
        var str = "/SubwayInfoService/getKwrdFndSubwaySttnList?serviceKey="
        str = str+serviceKey+"&subwayStationName="
@@ -113,32 +141,30 @@ export default {
         console.log(response)
         var xml = response.data.response.body
         this.lineCount = xml.totalCount
-        if(this.lineCount == 1 ){
-           this.modalElement.Id.push(xml.items.item.subwayStationId)
-           this.modalElement.lineName.push(xml.items.item.subwayRouteName)
-        }
-        else{
-          var i
-          for(i=0;i<this.lineCount;i++){
-            this.modalElement.lineName.push(xml.items.item[i].subwayRouteName)
-            this.modalElement.Id.push(xml.items.item[i].subwayStationId)
+        if(this.networkcheck==false){
+          var json= new Object();
+          this.networkcheck=true;
+          this.modalElement.Id.push(xml.items.item[0].subwayStationId)
+          json.name=xml.items.item[0].subwayRouteName;
+          json.state = true;
+          this.modalElement.btn_state[0]=json;
+
+          if(this.lineCount != 1 ){
+            var i
+            for(i=1;i<this.lineCount;i++){
+              var json2 =new Object();
+              this.modalElement.Id.push(xml.items.item[i].subwayStationId)
+              
+              json2.name=xml.items.item[i].subwayRouteName;
+              json2.state=false;
+              this.modalElement.btn_state.push(json2);
+            }
           }
         }
-        for(i=0;i<this.lineCount;i++){
-          this.getTimetable(this.modalElement.Id[i])
-         }
+        console.log(this.modalElement.btn_state);
+        console.log(this.modalElement.Id);
+        this.getTimetable(this.modalElement.Id[0])
       })
-      },
-      timeconvert(time){
-        var timeRegFormat = /^([0-9]{2}):([0-9]{2})$/;
-        var timeToken = time.match(timeRegFormat);
-        var ap=['오전','오후'];
-
-        var intH=parseInt(timeToken[1]);
-        var intM=timeToken[2];
-        var str12H = ('0'+(intH == 12 ? 12 : intH % 12 )).slice(-2);
-        console.log(ap[parseInt(intH/12)]+" " + str12H + "시" + intM);
-        return ap[parseInt(intH/12)]+" " + str12H + "시" + intM +"분";
       },
       getDown(url){
         axios.get(url)
@@ -172,6 +198,9 @@ export default {
           this.getDown(urlDown)
         })
       },
+      btn_click(stationId){
+        this.getTimetable(stationId);
+      },
       getTimetable(stationId){
         var str = "/SubwayInfoService/getSubwaySttnAcctoSchdulList?serviceKey="
         var url = str+serviceKey+"&subwayStationId="+stationId+numOfRows+"&dailyTypeCode=01&upDownTypeCode="
@@ -180,11 +209,8 @@ export default {
         urlUp=urlUp+pageNo+this.stationElemnt.upPage
         urlDown=urlDown+pageNo+this.stationElemnt.downPage
         this.getup(urlUp,urlDown)
-       
-      }
-      ,
+      },
      openSubway(subName){
-       this.time();
        this.getJson(subName);
        this.modalElement.showModal=true;
        this.modalElement.headName=subName;

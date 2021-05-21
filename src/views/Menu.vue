@@ -30,7 +30,7 @@
         </b-container>
         <br>
           <router-link
-            v-for="element in menuElement" :key="element"
+            v-for="element in menuElement.name" :key="element"
             :to ="element.path">
         <br>
             <b-icon
@@ -40,7 +40,7 @@
             </b-icon>
         <br>
           <label style="font-size: 1.5rem">
-            {{element.name}}</label>
+            {{element}}</label>
         <br>
         </router-link>
       </b-sidebar>
