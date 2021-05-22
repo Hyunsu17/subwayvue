@@ -22,19 +22,9 @@
     </h3>
     <div slot="body">
       <h3>현재시각<b-badge>{{this.now}}</b-badge></h3>
-      <b-button-group v-if="this.modalElement.btn_state">
-        <b-button variant="info"
-        v-for="(btn) in modalElement.btn_state" 
-        :key="btn.name"
-        :pressed.sync="btn.state"
-        v-on:click="btn_click()"
-       >
-        {{btn.name}}
-        </b-button>
-      </b-button-group>
       <b-table
       id="my-table"
-      :items="stationElemnt.item"
+      :items="items.item[items.btn_Index].timeTable"
       :per-page="perPage"
       :current-page="currentPage"
     ></b-table>
@@ -66,6 +56,14 @@ export default {
   created(){
   },
   mounted(){
+    //for(var i=0;i<50;i++){
+    //  this.uptime.push(undefined);
+      //this.downtime.push(undefined);
+    //}
+    console.log("test!!!!!!");
+    console.log(this.uptime);
+    console.log("down")
+    console.log(this.downtime);
     this.time();
   }
   ,
@@ -78,23 +76,27 @@ export default {
       currentPage:1,
       modalElement:
       {
-        btn_Index:0,
-        btn_state:[{name:" ",state:false}],
         headName:"None",
         showModal:false,
-        lineCount:0,
-        Id:[]
       },
-      stationElemnt:{
-        downPage:1,
-        upPage:1,
-        page:[],  
-        downCnt:0,
-        upCnt:0,
-        item:[],
-        items:[],
-        upTime:[],
-        downTime:[]
+      downTime:[],
+      upTime:[],
+      items:{
+        btn_Index:0,
+        btn_state:[{name:" ",state:false}],
+        item:[
+          {
+          Id:"",
+          timeTable:[],
+          elementCount:{
+            up:0,
+            down:0
+          },
+          curIndex:0, //값이 들어와야하는 배열의 인덱스를 가리킴,
+          page:1,
+        }
+        ],
+        lineCount:0,
       }
     };
   },
@@ -108,15 +110,26 @@ export default {
        this.clock();
        setInterval(this.clock,1000);
      },
-     makeJsonArr(cur,scp){
-       this.stationElemnt.upTime.sort((a,b)=> a-b);
-       this.stationElemnt.downTime.sort((a,b) => a-b);
-       for(var i=cur; i <= scp;i++){
+     makeJsonArr(count,Index){
+       //  17
+       console.log("count:"+count);
+       this.upTime.sort((a,b)=> a-b);
+       this.downTime.sort((a,b) => a-b);
+       for(var i= 0 ; i < count ; i++){
           var json= new Object();
-          json.up= this.timeconvert((""+this.stationElemnt.upTime[i]).substring(0,2)+":"+(""+this.stationElemnt.upTime[i]).substring(2,4));
-          json.down= this.timeconvert((""+this.stationElemnt.downTime[i]).substring(0,2)+":"+(""+this.stationElemnt.downTime[i]).substring(2,4));
-          this.stationElemnt.item.push(json);
+          if(!this.upTime[i])
+            json.up= this.timeconvert((""+this.upTime[i]).substring(0,2)+":"+(""+this.upTime[i]).substring(2,4));
+          else
+            json.up = " ";
+          if(!this.downTime[i])
+            json.down= this.timeconvert((""+this.downTime[i]).substring(0,2)+":"+(""+this.downTime[i]).substring(2,4));
+          else
+            json.down=" ";
+          this.items.item[Index].timeTable.push(json);
        }
+       this.items.item[Index].curIndex = this.items.item[Index].curIndex + count;
+       this.upTime.fill();
+       this.downTime.fill();
      }
      ,
       timeconvert(time){
@@ -138,77 +151,82 @@ export default {
        var url = str+stationName
        axios.get(url)
         .then((response) => {
-        console.log(response)
         var xml = response.data.response.body
-        this.lineCount = xml.totalCount
-        if(this.networkcheck==false){
+        this.items.lineCount = xml.totalCount
+        if(this.networkcheck == false){
           var json= new Object();
           this.networkcheck=true;
-          this.modalElement.Id.push(xml.items.item[0].subwayStationId)
+          this.items.item[0].Id = xml.items.item[0].subwayStationId
           json.name=xml.items.item[0].subwayRouteName;
           json.state = true;
-          this.modalElement.btn_state[0]=json;
+          this.items.btn_state[0]=json;
 
           if(this.lineCount != 1 ){
-            var i
-            for(i=1;i<this.lineCount;i++){
+            for(var i=1;i<this.lineCount;i++){
               var json2 =new Object();
-              this.modalElement.Id.push(xml.items.item[i].subwayStationId)
+              this.items.item[i].Id=xml.items.item[i].subwayStationId
               
               json2.name=xml.items.item[i].subwayRouteName;
               json2.state=false;
-              this.modalElement.btn_state.push(json2);
+              this.items.btn_state[i]=json2;
             }
           }
         }
-        console.log(this.modalElement.btn_state);
-        console.log(this.modalElement.Id);
-        this.getTimetable(this.modalElement.Id[0])
+        this.getTimetable(this.items.item[0].Id,0)
       })
       },
-      getDown(url){
+      getDown(url,upCnt,Index){
         axios.get(url)
         .then((response)=> {
+          console.log("upCnt"+upCnt+"Index"+Index);
+          console.log("down");
+          console.log(response);
           var rep=response.data.response.body
-          var j =0;
-          this.stationElemnt.downCnt= rep.totalCount
-           for(var i=(this.stationElemnt.downPage-1)*50 ;i < this.stationElemnt.downPage*50 ; j++, i++){
-            if(i >= this.stationElemnt.downCnt)
+          this.items.item[Index].elementCount.down= rep.totalCount
+          var cur = this.items.item[Index].curIndex;
+           for( var j =0;j < 50 ; j++){
+            if(cur >= this.items.item[Index].elementCount.down)
               break;
-            this.stationElemnt.downTime[i]= rep.items.item[j].depTime.toString();
+            this.downTime[j]= rep.items.item[j].depTime.toString();
+            cur++;
             } 
-          console.log("down")
-          console.log(response)
-          this.makeJsonArr(0,49)
+          console.log("hey");
+          console.log(this.downTime)
+          console.log(this.upTime);
+          if(j>upCnt)
+            this.makeJsonArr(j);
+          else
+            this.makeJsonArr(upCnt);
         })
       },
-      getup(urlUp,urlDown){
+      getup(urlUp,urlDown,Index){
         axios.get(urlUp)
         .then((response) => {
           var rep=response.data.response.body
-          this.stationElemnt.upCnt= rep.totalCount
-          var j =0
-          for(var i=(this.stationElemnt.upPage-1)*50 ;i < this.stationElemnt.upPage*50 ; j++, i++){
-            if(i >= this.stationElemnt.upCnt)
+          this.items.item[Index].elementCount.up= rep.totalCount
+          var cur=this.items.item[Index].curIndex;
+          for(var j=0 ; j < 50 ; j++){
+            if(cur >= this.items.item[Index].elementCount.up)
               break;
-            this.stationElemnt.upTime[i] = rep.items.item[j].depTime.toString();
+            this.upTime[j] = rep.items.item[j].depTime.toString();
+            cur++;
           } 
           console.log("up")
           console.log(response)
-          this.getDown(urlDown)
+          this.getDown(urlDown,j,Index)
         })
       },
       btn_click(stationId){
         this.getTimetable(stationId);
       },
-      getTimetable(stationId){
+      getTimetable(stationId,Index){
         var str = "/SubwayInfoService/getSubwaySttnAcctoSchdulList?serviceKey="
         var url = str+serviceKey+"&subwayStationId="+stationId+numOfRows+"&dailyTypeCode=01&upDownTypeCode="
         var urlUp = url+"U"
         var urlDown = url+"D"
-        urlUp=urlUp+pageNo+this.stationElemnt.upPage
-        urlDown=urlDown+pageNo+this.stationElemnt.downPage
-        this.getup(urlUp,urlDown)
+        urlUp=urlUp+pageNo+this.items.item[Index].page
+        urlDown=urlDown+pageNo+this.items.item[Index].page
+        this.getup(urlUp,urlDown,Index)
       },
      openSubway(subName){
        this.getJson(subName);
