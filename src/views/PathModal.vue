@@ -1,6 +1,6 @@
 
 <template>
-    <transition name="modal">
+    <transition naem="modal">
         <div class="modal-mask">
             <div class="modal-wrapper">
                 <div class="modal-container">

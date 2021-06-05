@@ -1,6 +1,8 @@
 <template>
   <div class="home">
-    <router-view></router-view>
+    
+    <router-view @findPath="findMinPath"></router-view>
+    
     <img alt="subway" src="../assets/img_subway.png"  width="1500" height="1269" usemap="#menuMap"/>
 
     <map name ="menuMap" id="menuMap">
@@ -15,11 +17,11 @@
       <area shape="circle" coords="973,358,2" alt="" title="Deokso" target="_blank" href="https://www.naver.com"/>
       <area shape="circle" coords="973,358,2" alt="" title="Deokso" target="_blank" href="https://www.naver.com"/>
       <area shape="circle" coords="973,358,2" alt="" title="Deokso" target="_blank" href="https://www.naver.com"/>
-      <area shape="circle" coords="717,559,3" alt="" title="Deokso" target="_blank" v-on:click="openSubway('서울역')"/>
-      <area shape="circle" coords="775,558,3" alt="" title="Deokso" target="_blank" v-on:click="openSubway('회현')"/>
-      <area shape="circle" coords="817,559,3" alt="" title="Deokso" target="_blank" v-on:click="openSubway('명동')"/>
-      <area shape="circle" coords="860,559,3" alt="" title="Deokso" target="_blank" v-on:click="openSubway('충무로')"/>
-      <area shape="circle" coords="775,558,3" alt="" title="Deokso" target="_blank" v-on:click="openSubway('')"/>
+      <area shape="circle" coords="717,559,3" alt="" title="seoul" target="_blank" v-on:click="onStationClicked('서울역')"/>
+      <area shape="circle" coords="775,558,3" alt="" title="hweione" target="_blank" v-on:click="onStationClicked('회현')"/>
+      <area shape="circle" coords="817,559,3" alt="" title="Deokso" target="_blank" v-on:click="onStationClicked('명동')"/>
+      <area shape="circle" coords="860,559,3" alt="" title="Deokso" target="_blank" v-on:click="onStationClicked('충무로')"/>
+      <area shape="circle" coords="775,558,3" alt="" title="Deokso" target="_blank" v-on:click="onStationClicked('')"/>
     </map>
 
     <Modal v-if="modalElement.showModal" @close="modalElement.showModal=false">
@@ -29,52 +31,93 @@
       </h3>
 
       <div slot="body">
-        <h3>현재시각<b-badge>{{this.now}}</b-badge></h3>
-        <b-alert v-if="downAlert" show variant="light"> 상행성 다음열차출발까지{{this.uptimeAlert}}분 만큼 남았습니다. </b-alert>
-        <b-alert v-if="upAlert" show variant="light"> 하행선 다음열차출발까지 {{this.downtimeAlert}}분 만큼 남았습니다 </b-alert>
-
+        <h3>현재시각<b-badge>{{currentTime}}</b-badge></h3>
+         <b-alert  show variant="success"> 다음열차출발까지 {{this.uptimeAlert}}분 만큼 남았습니다 </b-alert>
+   
         <b-card no-body>
-          <b-tabs card>
-            <b-tab v-for="(stn, index) in lineStation" :key="stn.subwayStationId" :title="stn.subwayRouteName" :active="index===0">              
-
+          <b-tabs card :key="refresh" v-if="trainMap[currentName].totalCount > 1">
+            <b-tab v-for="(stn, index) in lineStation" :key="stn.subwayStationId" :title="stn.subwayRouteName" :active="index===0" @click="tapClick(index)">              
+              
               <b-tabs card>
-                
-                <b-tab v-for="ele in tableTab"  :key = ele >  
-                  
+                <b-tab v-for="(value,name) in tableTab" :key = name :title="value" @click="changeUpDown(name)">  
                   
                   <b-table
+                    :key="timeTable[trainMap[currentName].item[index].subwayStationId].currentPage[name]"
                     id="my-table"
-                    :items="timeTable[trainMap[currentName].item[index].subwayStationId][ele]"
+                    :items="timeTable[trainMap[currentName].item[index].subwayStationId][name]"
                     :per-page="perPage"
-                    :current-page="currentPage"
+                    :current-page="timeTable[trainMap[currentName].item[index].subwayStationId].currentPage[name]"
                   >
                   </b-table>
-                  {{ele}}
-                  {{timeTable[trainMap[currentName].item[index].subwayStationId].totalCount[ele]}}
-                  {{trainMap[currentName].item[index].subwayStationId}}
-                  {{timeTable[trainMap[currentName].item[index].subwayStationId][ele] }}
+                  
                   <b-pagination
-                    :key=" currentPage"
-                    v-model="currentPage"
-                    :total-rows="timeTable[trainMap[currentName].item[index].subwayStationId].totalCount[ele]"
+                    v-model="timeTable[trainMap[currentName].item[index].subwayStationId].currentPage[name]"
+                    :total-rows="timeTable[trainMap[currentName].item[index].subwayStationId].totalCount[name]"
                     :per-page="perPage"
                     next-text="Next"
                     prev-text="Prev"
                     aria-controls="my-table"
                   > 
-
                   </b-pagination>
-               
-                </b-tab>
 
+                </b-tab>
               </b-tabs>
 
             </b-tab>
           </b-tabs>
+
+          <b-tabs card :key="refresh" v-else>
+            <b-tab :title="lineStation.subwayRouteName" @click="tapClick(-1)">              
+            
+              <b-tabs card>
+                <b-tab v-for="(value,name) in tableTab" :key = name :title="value" @click="changeUpDown(name)"  >  
+                  
+                  <b-table
+                    :key="timeTable[lineStation.subwayStationId].currentPage[name]"
+                    id="my-table"
+                    :items="timeTable[lineStation.subwayStationId][name]"
+                    :per-page="perPage"
+                    :current-page="timeTable[lineStation.subwayStationId].currentPage[name]"
+                  >
+                  </b-table>
+                  
+                  <b-pagination
+                    v-model="timeTable[lineStation.subwayStationId].currentPage[name]"
+                    :total-rows="timeTable[lineStation.subwayStationId].totalCount[name]"
+                    :per-page="perPage"
+                    next-text="Next"
+                    prev-text="Prev"
+                    aria-controls="my-table"
+                  > 
+                  </b-pagination>
+
+                </b-tab>
+              </b-tabs>
+
+            </b-tab>
+          </b-tabs>
+
         </b-card>
       </div>
 
     </Modal>
+    
+    <PathModal v-if="showPathModal" @close="showPathModal=false">
+      <h3 slot="header">
+          최단거리
+        <i class="fas fa-times caloseModalBtn" @click="showPathModal = false"></i>
+      </h3>
+
+      <div slot="body">
+        
+          {{stationList}}
+          <b-icon-arrow-right></b-icon-arrow-right>
+
+        <br>
+        총 {{minDist}} 정거장
+      
+      </div>
+    </PathModal>
 
     </div>
 </template>
@@ -82,6 +125,8 @@
 <script>
 import axios from 'axios';
 import Modal from "./Modal";
+import PathModal  from "./PathModal";
+import * as minPathModule from "../service/findPath"
 
 const serviceKey='DkNcb3tEZkL2B%2BjFFBOTbBbYKsgkcFKs4g06IxAbjr40J6g6LMdwA8xSUFGPzpaSf8uHY4tsk%2F0992PQAAvcHw%3D%3D'
 const NAME2LINEINFO = "/SubwayInfoService/getKwrdFndSubwaySttnList?serviceKey="
@@ -89,46 +134,59 @@ const ID2TIMETABLE = "/SubwayInfoService/getSubwaySttnAcctoSchdulList?serviceKey
 const numOfRows= '&numOfRows=300'
 const pageNo="&pageNo=1"
 
+
 export default {
   name: 'home',
   components: {
   Modal,
+  PathModal
   },
   created(){
   },
   mounted(){
-    this.time();
+    this.callTime();
+    window.curWeb = this;
+    minPathModule.makeGraph();
   }
   ,
   data(){
     return{
-      now:"00:00:00",
+      now:"00:00",
       perPage:10,
 
-      currentPage:1,
+      refresh: 1,
       
       downtimeAlert:0,
       uptimeAlert:0,
       downAlert:false,
       upAlert:false,
-      modalElement:
+
+
+      showPathModal:false,
+      minDist:0,
+      stationList: undefined
+      ,
+
+      modalElement: 
       {
-        modalOn:false,
         headName:"None",
         showModal:false,
       },
-      downTime:[],
-      upTime:[],
-      map:new Map(),
-      obj:{},
 
-      tableTab: ['up','down'],
+      tableTab: {up:'상행',down:'하행'}, //상행, 하행 구분
 
       currentName:"",     // 현재 선택된 역명
-      currentTimeIndex:0,
+
+      curIndex:0, //현새 선택된 tab(노선명) 구분
+
+      upOrDown:'up', //현재 선택된 tab(상행,하행) 구분
+
+      timerCheck:false, //현재 타이머가 재생중인지 확인
+
+      isClick:false,
 
       trainMap: {
-        서울역:{ 
+        서울역1:{ 
           item:
           [
           {subwayRouteName: "공항", subwayStationId: "MTRARA1A01", subwayStationName: "서울역"},
@@ -154,14 +212,12 @@ export default {
             {depTime: '052100'},
             {depTime: '052100'},
           ],
-          currentPage:0,
+          currentPage:{up:1,down:1},
           totalCount:{up:0,down:0},
-          currentRow:{upRow:0,downRow:0}
+          currentRow:{up:0,down:0}
         },
 
-      },     // 역별 상행 / 하행 출발 시간 정보
-
-      curTimeTable: {},
+      },     // 역별 상행 / 하행 출발 시간 정보 / 현재 페이지 / 총 개수 / 다음 열차시간 ROW 
 
       msg:{
         em: "서두르셔야합니다.",
@@ -188,14 +244,22 @@ export default {
   methods:{
     /* 역 클릭에 대한 이벤트 처리 */
     onStationClicked(stationName) {
+ 
+      
       this.currentName=stationName;
       console.log("click");
+
       // 역정보가 존재하는 경우
+
       if (this.trainMap[stationName] !== undefined) {
+        
         // 팝업 표시
+        this.modalElement.showModal=true;
       }
-      // 역정보가 존재하지 않는 경
+
+      // 역정보가 존재하지 않는 경우
       else {
+
         // 호출 URL
         let url = NAME2LINEINFO + serviceKey + "&subwayStationName=" + stationName;
 
@@ -209,16 +273,18 @@ export default {
     parseStationInfo(param, data) {
       if (data !== undefined) {//
         console.log(data);
- 
+
+        //trainMap 객체 할당
         this.trainMap[param.stationName]={};     
         this.trainMap[param.stationName].item = data.items.item;
         this.trainMap[param.stationName].totalCount = data.totalCount; 
+       
         console.log(this.trainMap[param.stationName]);
 
         let length=this.trainMap[param.stationName].totalCount;
         
         
-        for (let i=0; i< length ; ++i) {
+        for (let i=0; i< length ; i++) {
           
           let idxStationId;
           //길이가 1이면 배열 사용이 안되 변환
@@ -229,7 +295,8 @@ export default {
 
           //binding할 미리 timeTable 생성
           
-          this.timeTable[idxStationId]= { up:[], down:[], totalCount:{up:0,down:0}, currentRow:{upRow:-1,downRow:-1} };
+          this.timeTable[idxStationId]= { up:[], down:[], totalCount:{up:0,down:0}, currentRow:{up:-1,down:-1}, currentPage:{up:1,down:1} };
+          console.log(this.timeTable[idxStationId]);
 
           // 호출 URL & 파라미터
           let upParam = {
@@ -252,24 +319,43 @@ export default {
       }
       else
         console.log("parseStaion:data error");
-      this.modalElement
-    },
+      }
+     ,
 
     /* 타임테이블 정보 저장 */
     parseTimeTable(param, data) {
       if (data !== undefined) { 
         
-        //this.timeTable[param.stationId]= { up:[], down:[], totalCount:{upCnt:0,downCnt:0}, currentRow:{upRow:-1,downRow:-1} };
-        console.log(param);
-
+        //상행 하행 구분해서 table assign
         for(let i=0 ; i <data.totalCount ;i++){
           let obj = {};
-          obj.도착시간 = data.items.item[i].depTime;
+          obj.도착시간 = data.items.item[i].depTime.toString();
+          obj._rowVariant="";
           this.timeTable[param.stationId][param.upOrDown].push(obj);
         }
 
-        console.log(this.timeTable[param.stationId][param.upOrDown]);
+        
+        //array sorting
+        this.timeTable[param.stationId][param.upOrDown].sort((a,b) =>{
+          if(a.도착시간 >b.도착시간)
+            return 1;
+          else if(a.도착시간 <b.도착시간)
+            return -1;
+          else 
+            return 0;
+        });
 
+        // 오후/오전 00:00 형식으로 변환 
+        for(let i=0; i < data.totalCount ;i++){
+          this.timeTable[param.stationId][param.upOrDown][i].도착시간=
+          this.timeConvertTo12(
+            this.timeTable[param.stationId][param.upOrDown][i].도착시간.slice(0,2)
+            +":"+
+            this.timeTable[param.stationId][param.upOrDown][i].도착시간.slice(2,4)
+          );
+        }
+
+        //상행 하행 구분해서 개수 저장
         if(param.upOrDown == 'up')
           this.timeTable[param.stationId].totalCount.up =data.totalCount;
         else if(param.upOrDown =='down')
@@ -277,13 +363,35 @@ export default {
         else
           console.log("parseStaion: up OR down Error");
         
-        // this.timeTable[param.stationId][param.upOrDown].sort((a,b) => a-b);
-        console.log(this.timeTable[param.stationId]);
-        console.log("timeTable");
-        console.log(this.timeTable);
-      }
+        //화면 재구성을 위한 refresh 조정
+        this.refresh++;
+        
+        }
       else
         console.log("parseStaion:data error");
+     
+      //Modal의 가장 처음 화면에 현재시각에 관한 정보를 호출한다.
+      if(this.trainMap[this.currentName].totalCount==1){
+          if(this.trainMap[this.currentName].item.subwayStationId==param.stationId){
+            this.curIndex=-1;
+            this.updateTime();
+            if(this.timerCheck==false){
+              this.setTimer();
+              this.timerCheck=true;
+            }
+          }
+      }
+      else{
+          if(this.trainMap[this.currentName].item[0].subwayStationId==param.stationId){
+            this.curIndex=0;
+            this.updateTime();
+            if(this.timerCheck==false){
+              this.setTimer()
+              this.timerCheck=true;
+            }
+          }
+      }
+        
       this.modalElement.showModal=true;
     },
 
@@ -294,72 +402,25 @@ export default {
 
         console.log(response);
 
-        if (response.status === 200) {
+        if (response.status === 200)
           funcPtr(param, response.data.response.body);
-        }
         else {
           funcPtr(param);
           console.log("Server Error");
         }
       })
     },
-    /*시간표 테이블의 ROW의 개수 반환*/
-    totalRows(idx , param){
-      console.log("totalRows")
-
-      if(this.timeTable[this.trainMap[this.currentName].item[idx].subwayStationId] != undefined) { //null check
-        
-        console.log(this.trainMap[this.currentName].item[idx].subwayStationId);
-        
-        if(param=='up') {
-          return this.timeTable[this.trainMap[this.currentName].item[idx].subwayStationId].totalCount.up;
-        }
-
-        else if(param=='down') {
-          return this.timeTable[this.trainMap[this.currentName].item[idx].subwayStationId].totalCount.downCnt;
-        }
-
-        else{
-          console.log("error: totalRows ");
-          return null;
-        }
-      }
-    },
-
-    /*역의 테이블 반환*/
-    staionTimeTable(index ,param){
-      console.log("staionTimeTable")
-      console.log(index);
-
-      if(this.timeTable[this.trainMap[this.currentName].item[index].subwayStationId] != undefined) { //null check
-        
-        console.log(this.timeTable[this.trainMap[this.currentName].item[index].subwayStationId].up);
-       
-       if(param == 'up') {
-          return this.timeTable[this.trainMap[this.currentName].item[index].subwayStationId].up;
-        }
-
-        else if(param == 'down')        {
-          return this.timeTable[this.trainMap[this.currentName].item[index].subwayStationId].down;
-        }
-
-        else{
-          console.log("error: staionTimeTable ")
-          return null;
-        }
-      }
-    },
 
     /*시간 관련 함수*/
-    time(){
-       this.setTime()
-       setInterval(
-       this.setTime(),1000);
+    callTime(){
+      this.setCurrentTime();
+      setInterval(this.setCurrentTime, 1000);
      },
-    setTime(){
-       this.now= this.clock();
-     }
-     ,
+
+    setCurrentTime(){
+      this.now= this.clock();
+     },
+     
      /* 현재시각 반환 */
     clock(){
       let date = new Date();
@@ -369,22 +430,23 @@ export default {
 
       /*24시간 => 12시간 변경*/
     timeConvertTo12(time){
-        var timeRegFormat = /^([0-9]{2}):([0-9]{2})$/;
-        var timeToken = time.match(timeRegFormat);
-        var ap=['오전','오후'];
+        let timeRegFormat = /^([0-9]{2}):([0-9]{2})$/;
+        let timeToken = time.match(timeRegFormat);
+        let ap=['오전','오후'];
         if(!timeToken){
+          console.log(time);
           return " ";      
         }
-        var intH=parseInt(timeToken[1]);
-        var intM=timeToken[2];
-        var str12H = ('0'+(intH == 12 ? 12 : intH % 12 )).slice(-2);
+        let intH=parseInt(timeToken[1]);
+        let intM=timeToken[2];
+        let str12H = ('0'+(intH == 12 ? 12 : intH % 12 )).slice(-2);
         return ap[parseInt((intH == 12 ? 11 : intH) / 12)]+" " + str12H + "시" + intM +"분";
       },
 
       /*12시간=> 24시간 변경 */
     timeConvertTo24(str){
-       var hourInt;
-       var minInt;
+       let hourInt;
+       let minInt;
        if(str.slice(0,2) == "오전" ){
         hourInt = parseInt(str.slice(3,5));
         minInt = parseInt(str.slice(6));
@@ -394,21 +456,19 @@ export default {
         minInt = parseInt(str.slice(6));
        }
        else{
-         //console.log("check부탁");
-         //console.log(str);
          return null;
        }
-       var rep = ("0"+hourInt).slice(-2) + ("0"+minInt).slice(-2); 
-      // console.log("rowTime");
-      // console.log(rep);
+       let rep = ("0"+hourInt).slice(-2) + ("0"+minInt).slice(-2); 
        return rep;
      },
 
-    //시간이 t1이 빠르면 1 return t2가 빠르면 2 return
+      //시간이 t1이 빠르면 1 return t2가 빠르면 2 return
     compareTime(element){ 
-        var time1 = this.rowTime(element);
-        var time2 = this.rowTime(this.clock());
+        
+        let time1 = this.timeConvertTo24(element.도착시간);
+        let time2 = this.timeConvertTo24(this.clock());
         if(!time1){
+          console.log("error:compareTime!!");
           return false;
         }
         if(time1 >= time2)
@@ -417,125 +477,120 @@ export default {
           return false;
       },
 
+      //tapClick param을 설정하기 위한 메서드
+      tapClick(Index){
+        this.curIndex=Index;
+        this.isClick=true;
+        this.updateTime();
+      },
+     
+      //시간이 1분지날때마다 updateTime 호출
+      setTimer(){
+        setInterval(this.updateTime,20000);
+      },
+     
+      //상행 하행 변경시마다 data 갱신
+      changeUpDown(upOrDown){
+        this.upOrDown=upOrDown;
+        this.isClick=true;
+        this.updateTime();
+      }
+      ,
+
+        //현재 시각 Update 남은 분 계산 
       updateTime(){
-        var now = this.rowTime(this.clock());
-        now =parseInt(now.slice(0,2))*60+parseInt(now.slice(2,4));
-        //var downItv;
-        //var upItv;
-        var uptime;
-        var downtime;
-        var Index =this.map.get(this.currentName).btn_Index;
-        if(this.map.get(this.currentName).item[this.map.get(this.currentName).btn_Index].timeIndex.up != -1){
-          uptime = this.rowTime(this.map.get(this.currentName).item[Index].timeTable[this.map.get(this.currentName).item[Index].timeIndex.up]);
-          //upItv=parseInt(uptime.slice(0,2))*60+parseInt(uptime.slice(2,4));
-        //  console.log(upItv);
-          this.uptimeAlert= now - uptime;
+        let now = this.timeConvertTo24(this.clock());
+        console.log(now);
+        now =parseInt(now.slice(0,2))*60 +parseInt(now.slice(2,4));
+        
+        let uptime;
+        let Index = this.curIndex;
+        let subId 
+        
+        this.findCurrentTime(this.curIndex,this.isClick);
+        if(this.curIndex==-1)
+          subId =this.trainMap[this.currentName].item.subwayStationId;
+        else
+          subId =this.trainMap[this.currentName].item[Index].subwayStationId;
+
+        if(this.timeTable[subId].currentRow[this.upOrDown] != -1){
+          uptime = this.timeConvertTo24(this.timeTable[subId][this.upOrDown][this.timeTable[subId].currentRow[this.upOrDown]].도착시간);
+          uptime=parseInt(uptime.slice(0,2))*60+parseInt(uptime.slice(2,4));
+          this.uptimeAlert=uptime-now;
           this.upAlert=true;
-          if(this.uptimeAlert < 0 )
-            this.setCurrentTable(this.map.get(this.currentName).btn_Index);
         }
         else{
           this.upAlert = false;
         }
-        if(this.map.get(this.currentName).item[this.map.get(this.currentName).btn_Index].timeIndex.down != -1){
-          downtime = this.rowTime(this.map.get(this.currentName).item[Index].timeTable[this.map.get(this.currentName).item[Index].timeIndex.down]);
-          //downItv=parseInt(downtime.slice(0,2))*60+parseInt(downtime.slice(2,4));
-         // console.log(downItv);
-          this.downAlert=true;
-          this.downtimeAlert= now - downtime;
-          if(this.downtimeAlert<0)
-            this.setCurrentTable(this.map.get(this.currentName).btn_Index);
-        }
-        else{
-          this.downAlert=false;
-        }
-         setInterval(this.updateTime,10000);
       },
-
+ 
       //현재 시각과 가장 가까운 ROW를 찾아서 해당 ROW의 값을 특정하는 함수 => 1분마다 호출하거나 바뀔때마다 호출 
-      findCurrentTime(Index,checkUpDown){
-        //up일 경우
-        if(checkUpDown == 'up'){
-          //전에 존재하던 현재시간과 가장 가까운 ROW값을 삭제
-          let upIdx=this.timeTable[this.trainMap[this.currentName].item[Index].subwayStationId].currentRow.upRow;
-          if(upIdx != -1 )
-            this.timeTable[this.trainMap[this.currentName].item[Index].subwayStationId].up[upIdx]._rowVariant="";
+      findCurrentTime(Index,isClick){
+        
+        //현재 선택된 subId
+        let subId;
+        if(Index!=-1)
+           subId= this.trainMap[this.currentName].item[Index].subwayStationId;
+        else
+           subId= this.trainMap[this.currentName].item.subwayStationId;
+        
+        //up일 경우  
+        //전에 존재하던 현재시간과 가장 가까운 ROW값을 삭제
+        let upIdx = this.timeTable[subId].currentRow.up;
+        console.log(upIdx);
+        if(upIdx != -1 )
+          this.timeTable[subId].up[upIdx]._rowVariant="";
           
-          //현재 시간을 기준으로 가장 근접한 값을 찾은 후 값을 변경
-          if(this.timeTable[this.trainMap[this.currentName].item[Index].subwayStationId].totalCount.upCnt != 0 ){
-            upIdx = this.timeTable[this.trainMap[this.currentName].item[Index].subwayStationId].up.findIndex(); 
-            this.timeTable[this.trainMap[this.currentName].item[Index].subwayStationId].currentRow.upRow=upIdx;
-            this.timeTable[this.trainMap[this.currentName].item[Index].subwayStationId].up[upIdx]._rowVariant="success";
+        console.log(this.timeTable[subId].totalCount.up);
+        //현재 시간을 기준으로 가장 근접한 값을 찾은 후 값을 변경
+        if(this.timeTable[subId].totalCount.up != 0 ){
+          upIdx = this.timeTable[subId].up.findIndex(this.compareTime);
+          console.log(upIdx); 
+          this.timeTable[subId].currentRow.up=upIdx;
+          this.timeTable[subId].up[upIdx]._rowVariant="success";
             
-            //현재 시각이 있는 ROW로 page이동
-            this.timeTable[this.trainMap[this.currentName].item[Index].subwayStationId].currentPage = parseInt(upIdx/10) + 1;
-          }
-          else{
-            console.log("상행이 존재하지 않습니다.");
-          }
-        }
-        //down일 경우
-        else if(checkUpDown == 'down'){
-          //전에 존재하던 현재시간과 가장 가까운 ROW값을 삭제
-          let downIdx=this.timeTable[this.trainMap[this.currentName].item[Index].subwayStationId].currentRow.downRow;
-          if(downIdx != -1 )
-            this.timeTable[this.trainMap[this.currentName].item[Index].subwayStationId].down[downIdx]._rowVariant="";
-          
-          //현재 시간을 기준으로 가장 근접한 값을 찾은 후 값을 변경
-          if(this.timeTable[this.trainMap[this.currentName].item[Index].subwayStationId].totalCount.downCnt != 0 ){
-            downIdx = this.timeTable[this.trainMap[this.currentName].item[Index].subwayStationId].down.findIndex(); 
-            this.timeTable[this.trainMap[this.currentName].item[Index].subwayStationId].currentRow.downRow=downIdx;
-            this.timeTable[this.trainMap[this.currentName].item[Index].subwayStationId].down[downIdx]._rowVariant="success";
-            
-            //현재 시각이 있는 ROW로 page이동
-            this.timeTable[this.trainMap[this.currentName].item[Index].subwayStationId].currentPage = parseInt(downIdx/10) + 1;
-          }
-          else{
-            console.log("하행이 존재하지 않습니다.");
-          }
+        //현재 시각이 있는 ROW로 page이동
+          if(isClick==true)
+            this.timeTable[subId].currentPage['up'] = parseInt(upIdx/10) + 1;
+          console.log(this.timeTable[subId].currentPage['up']);
         }
         else{
-          console.log("findCurrentTime: checkUpDown error");
+          console.log("상행이 존재하지 않습니다.");
+        }
+
+        //down일 경우
+        //전에 존재하던 현재시간과 가장 가까운 ROW값을 삭제
+        let downIdx=this.timeTable[subId].currentRow.down;
+        if(downIdx != -1 )
+          this.timeTable[subId].down[downIdx]._rowVariant="";
+          
+          //현재 시간을 기준으로 가장 근접한 값을 찾은 후 값을 변경
+        if(this.timeTable[subId].totalCount.down != 0 ){
+          downIdx = this.timeTable[subId].down.findIndex(this.compareTime); 
+          this.timeTable[subId].currentRow.down=downIdx;
+          this.timeTable[subId].down[downIdx]._rowVariant="success";
+            
+          //현재 시각이 있는 ROW로 page이동
+          if(isClick==true)
+            this.timeTable[subId].currentPage['down'] = parseInt(downIdx/10) + 1;
+          console.log(this.timeTable[subId].currentPage['up']);
+        }      
+        else{
+            console.log("하행이 존재하지 않습니다.");
+        }
+        if(isClick==true){
+          this.isClick=false;
         }
      },
-
-
-     makeJsonArr(count,Index,stationName){
-       this.upTime.sort((a,b)=> a-b);
-       this.downTime.sort((a,b) => a-b);
-       for(var i= 0 ; i < count ; i++){
-          var json= new Object();
-          var json2= new Object();
-          if(!this.upTime[i])
-            json.up = " ";
-          else
-            json.up= this.timeConvertTo12((""+this.upTime[i]).substring(0,2)+":"+(""+this.upTime[i]).substring(2,4));
-          if(!this.downTime[i])
-            json.down=" ";
-          else
-            json.down= this.timeConvertTo12((""+this.downTime[i]).substring(0,2)+":"+(""+this.downTime[i]).substring(2,4));
-          json2.up='';
-          json2.down='';
-          json._cellVariants=json2;
-          this.map.get(stationName).item[Index].timeTable.push(json);
-       }
-       this.map.get(stationName).item[Index].curIndex = this.map.get(stationName).item[Index].curIndex + count;
-       this.setCurrentTable(Index,stationName);
-       this.upTime.fill();
-       this.downTime.fill();
-     },
-     openSubway(subName){
-      if(this.obj[subName] == undefined){
-        this.obj[subName] = new this.makeItems();
+      
+        //최소 경로함수를 호출
+      findMinPath(start,end){
+        console.log(start,end);
+        let obj=minPathModule.getMinPath(start,end);
+        this.minDist=obj.minDist;
+        this.stationList = obj.list.reverse();
+        this.showPathModal=true;
       }
-      if(!this.map.get(subName)){
-          this.map.set(subName , new this.makeItems());
-          this.getJson(subName);
-      }
-       this.currentName=subName;
-       this.modalElement.showModal=true;
-       this.modalElement.headName=subName;
-     }
   }
 }
 </script>

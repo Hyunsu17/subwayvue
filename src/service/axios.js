@@ -1,6 +1,6 @@
 import axios from 'axios';
 //import VueCookies from 'vue-cookies';
-import { refreshToken } from '../service/login'
+//import { refreshToken } from '../service/login'
 
 
 //axios.defaults.baseURL = 'http://58.29.14.231:16102';
@@ -22,6 +22,7 @@ axios.interceptors.request.use(async function (config) {
   });
 
 // Add a response interceptor
+/*
 axios.interceptors.response.use(function (response) {
     // Any status code that lie within the range of 2xx cause this function to trigger
     // Do something with response data
@@ -40,6 +41,6 @@ axios.interceptors.response.use(function (response) {
     return Promise.reject(error);
   });
 
-
+*/
 
 export default axios;
