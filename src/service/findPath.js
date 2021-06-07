@@ -331,11 +331,10 @@ export function makeGraph(){
         }
     } 
 
-
-    
-    stationGraph = new Graph(list);
     //각 역들을 그래프형식으로 저장
-
+    stationGraph = new Graph(list);
+    
+    //각 그래프 노드간 간선 연결
     for(let i=0;i<list.length;i++){
         for(let j=0;j<list[i].stationStructure.length;j++){
             stationGraph.makeEdge(list[i].stationStructure[j]);

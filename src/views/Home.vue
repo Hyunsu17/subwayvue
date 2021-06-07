@@ -3,25 +3,31 @@
     
     <router-view @findPath="findMinPath"></router-view>
     
-    <img alt="subway" src="../assets/img_subway.png"  width="1500" height="1269" usemap="#menuMap"/>
+    <img alt="subway" src="../assets/img_subway.png"  width="1629" height="1378" usemap="#menuMap"/>
 
     <map name ="menuMap" id="menuMap">
-      <area shape="circle" coords="1346,494,3" alt="" title="Deokso" target="_blank" v-on:click="onStationClicked('왕십리')"/>
-      <area shape="circle" coords="973,358,50" alt="" title="Deokso" target="_blank" href="https://www.naver.com" style="background-color=#0000FF;"/>
-      <area shape="circle" coords="963,340,2" alt="" title="Deokso" target="_blank" href="https://www.naver.com"/>
-      <area shape="circle" coords="964,320,2" alt="" title="Deokso" target="_blank" href="https://www.naver.com"/> 
-      <area shape="circle" coords="963,300,2" alt="" title="Deokso" target="_blank" href="https://www.naver.com"/>
-      <area shape="circle" coords="955,286,2" alt="" title="Deokso" target="_blank" href="https://www.naver.com"/>
-      <area shape="circle" coords="973,358,2" alt="" title="Deokso" target="_blank" href="https://www.naver.com"/>
-      <area shape="circle" coords="973,358,2" alt="" title="Deokso" target="_blank" href="https://www.naver.com"/>
-      <area shape="circle" coords="973,358,2" alt="" title="Deokso" target="_blank" href="https://www.naver.com"/>
-      <area shape="circle" coords="973,358,2" alt="" title="Deokso" target="_blank" href="https://www.naver.com"/>
-      <area shape="circle" coords="973,358,2" alt="" title="Deokso" target="_blank" href="https://www.naver.com"/>
-      <area shape="circle" coords="717,559,3" alt="" title="seoul" target="_blank" v-on:click="onStationClicked('서울역')"/>
-      <area shape="circle" coords="775,558,3" alt="" title="hweione" target="_blank" v-on:click="onStationClicked('회현')"/>
-      <area shape="circle" coords="817,559,3" alt="" title="Deokso" target="_blank" v-on:click="onStationClicked('명동')"/>
-      <area shape="circle" coords="860,559,3" alt="" title="Deokso" target="_blank" v-on:click="onStationClicked('충무로')"/>
-      <area shape="circle" coords="775,558,3" alt="" title="Deokso" target="_blank" v-on:click="onStationClicked('')"/>
+      <area shape="circle" coords="1460,537,10" alt=""  target="_blank" v-on:click="onStationClicked('덕소')"/>
+      <area shape="circle" coords="1324,663,10" alt=""  target="_blank" v-on:click="onStationClicked('어린이대공원')"/>
+      <area shape="circle" coords="1183,564,10" alt=""  target="_blank" v-on:click="onStationClicked('왕십리')"/>
+      <area shape="circle" coords="1278,700,10" alt=""  target="_blank" v-on:click="onStationClicked('건대입구')"/>
+      <area shape="circle" coords="1368,631,10" alt=""  target="_blank" v-on:click="onStationClicked('군자')"/>
+      <area shape="circle" coords="1367,588,10" alt=""  target="_blank" v-on:click="onStationClicked('중곡')"/>
+      <area shape="circle" coords="1368,425,10" alt=""  target="_blank" v-on:click="onStationClicked('상봉')"/>
+      <area shape="circle" coords="1004,535,10" alt=""  target="_blank" v-on:click="onStationClicked('동대문역사문화공원')"/>
+      
+      <area shape="circle" coords="717,559,10" alt=""  target="_blank" v-on:click="onStationClicked('서울역')"/>
+      <area shape="circle" coords="775,558,10" alt=""  target="_blank" v-on:click="onStationClicked('회현')"/>
+      <area shape="circle" coords="817,559,10" alt=""  target="_blank" v-on:click="onStationClicked('명동')"/>
+      <area shape="circle" coords="860,559,10" alt=""  target="_blank" v-on:click="onStationClicked('충무로')"/>
+      
+      <area shape="circle" coords="1094,456,10" alt=""  target="_blank" v-on:click="onStationClicked('동묘앞')"/>
+      <area shape="circle" coords="1002,456,10" alt=""  target="_blank" v-on:click="onStationClicked('동대문')"/>
+      <area shape="circle" coords="949,456,10" alt=""  target="_blank" v-on:click="onStationClicked('종로5가')"/>
+      <area shape="circle" coords="873,456,10" alt=""  target="_blank" v-on:click="onStationClicked('종로3가')"/>
+      <area shape="circle" coords="1154,456,10" alt=""  target="_blank" v-on:click="onStationClicked('신설동')"/>
+      <area shape="circle" coords="1206,456,10" alt=""  target="_blank" v-on:click="onStationClicked('제기동')"/>
+      <area shape="circle" coords="1248,456,10" alt=""  target="_blank" v-on:click="onStationClicked('청량리')"/>
+  
     </map>
 
     <Modal v-if="modalElement.showModal" @close="modalElement.showModal=false">
@@ -186,7 +192,7 @@ export default {
       isClick:false,
 
       trainMap: {
-        서울역1:{ 
+        example2:{ 
           item:
           [
           {subwayRouteName: "공항", subwayStationId: "MTRARA1A01", subwayStationName: "서울역"},
@@ -201,7 +207,7 @@ export default {
       },     // 한글 지하철명에 대한 역정보
 
       timeTable: {
-        MTRARA1A01: {
+        example1: {
           up: [
             {depTime: '052100',_rowVariant:''},
             {depTime: '052100',_rowVariant:''},
@@ -247,6 +253,7 @@ export default {
  
       
       this.currentName=stationName;
+      this.modalElement.headName=this.currentName;
       console.log("click");
 
       // 역정보가 존재하는 경우
@@ -269,7 +276,7 @@ export default {
 
     },
 
-    /* 역에 대한 기본정보 저장  */
+    /* 역에 대한 기본정보(노선 정보, 역ID) 저장  */
     parseStationInfo(param, data) {
       if (data !== undefined) {//
         console.log(data);
@@ -336,6 +343,7 @@ export default {
 
         
         //array sorting
+        
         this.timeTable[param.stationId][param.upOrDown].sort((a,b) =>{
           if(a.도착시간 >b.도착시간)
             return 1;
@@ -346,6 +354,7 @@ export default {
         });
 
         // 오후/오전 00:00 형식으로 변환 
+
         for(let i=0; i < data.totalCount ;i++){
           this.timeTable[param.stationId][param.upOrDown][i].도착시간=
           this.timeConvertTo12(
@@ -356,6 +365,7 @@ export default {
         }
 
         //상행 하행 구분해서 개수 저장
+
         if(param.upOrDown == 'up')
           this.timeTable[param.stationId].totalCount.up =data.totalCount;
         else if(param.upOrDown =='down')
@@ -371,6 +381,7 @@ export default {
         console.log("parseStaion:data error");
      
       //Modal의 가장 처음 화면에 현재시각에 관한 정보를 호출한다.
+
       if(this.trainMap[this.currentName].totalCount==1){
           if(this.trainMap[this.currentName].item.subwayStationId==param.stationId){
             this.curIndex=-1;
@@ -395,6 +406,7 @@ export default {
       this.modalElement.showModal=true;
     },
 
+
     /* openApi 호출 */
     callOpenApi(param, funcPtr){
 
@@ -410,6 +422,7 @@ export default {
         }
       })
     },
+
 
     /*시간 관련 함수*/
     callTime(){

@@ -6,33 +6,12 @@ import VueCookies from 'vue-cookies';
 import {BootstrapVue,IconsPlugin} from 'bootstrap-vue'
 import 'bootstrap/dist/css/bootstrap.min.css'
 import 'bootstrap-vue/dist/bootstrap-vue.css'
-import {
-  ValidationObserver,
-  ValidationProvider,
-  extend,
-  localize
-} from "vee-validate";
-import en from "vee-validate/dist/locale/en.json";
-import * as rules from "vee-validate/dist/rules";
 
-import {configure} from 'vee-validate'
+import VueHead from 'vue-head'
 
-configure({
-  classes: {
-    valid: 'is-valid',
-    invalid: 'is-invalid'
-  }
-})
 
-//모든 rules를 사용할수 있게 해주는 코드
-Object.keys(rules).forEach(rule => {
-  extend(rule, rules[rule]);
-});
 
-localize("en", en);
 
-Vue.component("Validationobserver", ValidationObserver);
-Vue.component("ValidationProvider", ValidationProvider);
 
 
 // 등록
@@ -44,7 +23,7 @@ Vue.config.productionTip = false;
 Vue.use(VueCookies);
 Vue.use(BootstrapVue);
 Vue.use(IconsPlugin);
-//Vue.use(VeeValidate, {})
+Vue.use(VueHead);
 
 Vue.prototype.axios = axios;
 

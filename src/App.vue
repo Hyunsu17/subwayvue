@@ -16,7 +16,8 @@ export default {
     isLogin(){
       return true;
     }
-  }
+  },
+  meta: [{name:'viewport',content:"width=device-width,user-scalable=yes, initial-scale=2.0"}]
   }
 </script>
 
