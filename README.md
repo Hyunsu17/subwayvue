@@ -1,3 +1,5 @@
+## Readme대신 Subway-vue.pptx를 살표봐주세요
+
 # auth
 
 ## Project setup
